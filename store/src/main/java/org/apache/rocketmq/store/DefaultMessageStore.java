@@ -1821,7 +1821,9 @@ public class DefaultMessageStore implements MessageStore {
                     && this.reputFromOffset >= DefaultMessageStore.this.getConfirmOffset()) {
                     break;
                 }
-
+                //主要是构建 ConsumeQueue 和 Index
+                // reputFromOffset: 构建过 ConsumeQueue/Index 的进度
+                // Result 存储的是已刷过盘的 CommitLog 的进度 - reputFromOffset, 就是可以构建 ConsumeQueue/Index 的Message,  CommitLog 里还为转到 ConsumeQueue 里的消息
                 SelectMappedBufferResult result = DefaultMessageStore.this.commitLog.getData(reputFromOffset);
                 if (result != null) {
                     try {
@@ -1829,6 +1831,7 @@ public class DefaultMessageStore implements MessageStore {
 
                         for (int readSize = 0; readSize < result.getSize() && doNext; ) {
                             DispatchRequest dispatchRequest =
+                                // 通过   SelectMappedBufferResult 对象构造 DispatchRequest 对象
                                 DefaultMessageStore.this.commitLog.checkMessageAndReturnSize(result.getByteBuffer(), false, false);
                             int size = dispatchRequest.getBufferSize() == -1 ? dispatchRequest.getMsgSize() : dispatchRequest.getBufferSize();
 

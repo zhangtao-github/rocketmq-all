@@ -201,10 +201,11 @@ public class MappedFile extends ReferenceResource {
     public AppendMessageResult appendMessagesInner(final MessageExt messageExt, final AppendMessageCallback cb) {
         assert messageExt != null;
         assert cb != null;
-
+        //当前的MappedFile 的写入位置
         int currentPos = this.wrotePosition.get();
 
         if (currentPos < this.fileSize) {
+            //这个Buffer 和 同步 /异步 刷盘相关（异步刷盘还有两种刷盘模式可供选择）
             ByteBuffer byteBuffer = writeBuffer != null ? writeBuffer.slice() : this.mappedByteBuffer.slice();
             byteBuffer.position(currentPos);
             AppendMessageResult result = null;

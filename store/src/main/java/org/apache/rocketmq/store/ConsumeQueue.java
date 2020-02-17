@@ -419,11 +419,29 @@ public class ConsumeQueue {
 
     private boolean putMessagePositionInfo(final long offset, final int size, final long tagsCode,
         final long cqOffset) {
-
+         //offset: 需要重构 ConsumeQueue 的Message 的 CommitLog 的物理位置
+        //size:Message 的大小
+        //tagsCode:Message 的 TagCode
+        //cqOffset:消息队列的逻辑偏移
         if (offset + size <= this.maxPhysicOffset) {
             log.warn("Maybe try to build consume queue repeatedly maxPhysicOffset={} phyOffset={}", maxPhysicOffset, offset);
             return true;
         }
+        // byte[] buff  //buff即内部用于缓存的数组。
+        // position //当前读取的位置。
+        // mark //为某一读过的位置做标记，便于某些时候回退到该位置。
+        // capacity //初始化时候的容量。
+        // limit //当写数据到buffer中时，limit一般和capacity相等，当读数据时，limit代表buffer中有效数据的长度。
+
+        // ByteBuffer allocate(int capacity) //创建一个指定capacity的ByteBuffer。
+        // ByteBuffer allocateDirect(int capacity) //创建一个direct的ByteBuffer，这样的ByteBuffer在参与IO操作时性能会更好
+        // ByteBuffer wrap(byte [] array)
+        // ByteBuffer wrap(byte [] array, int offset, int length) //把一个byte数组或byte数组的一部分包装成ByteBuffer。
+        // get put方法不多说
+        // byte get(int index)
+        // ByteBuffer put(byte b)
+        // int getInt()       　　　　　　//从ByteBuffer中读出一个int值。
+        // ByteBuffer putInt(int value)  // 写入一个int值到ByteBuffer中。
 
         this.byteBufferIndex.flip();
         this.byteBufferIndex.limit(CQ_STORE_UNIT_SIZE);
@@ -433,9 +451,11 @@ public class ConsumeQueue {
 
         final long expectLogicOffset = cqOffset * CQ_STORE_UNIT_SIZE;
 
+        //根据期望的绝对位置找到对应某个ConsumeQueue 文件的MappedFile
         MappedFile mappedFile = this.mappedFileQueue.getLastMappedFile(expectLogicOffset);
         if (mappedFile != null) {
-
+            //如果mappedFileQueue 的MappedFile List 被清除
+            //需要保证消息队列的逻辑位置和 ConsumeQueue 文件的起始位置和偏移保持一致，要补充空的逻辑消息
             if (mappedFile.isFirstCreateInQueue() && cqOffset != 0 && mappedFile.getWrotePosition() == 0) {
                 this.minLogicOffset = expectLogicOffset;
                 this.mappedFileQueue.setFlushedWhere(expectLogicOffset);
